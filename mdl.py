@@ -14,7 +14,7 @@ class MDL_Header(object):
         for i in range(self.meshCount):
             br.seek(16, 1)
 
-class MDL_subMeshHeader(object):
+class MDL_MeshHeader(object):
     def __init__(self, br, ivx_header):
         super().__init__()
 
@@ -195,49 +195,23 @@ class MDL_chunk(object):
                     for i in range(NUM):
                         resetFlags.append([br.readUByte(), br.readUByte(), br.readUByte(), br.readUByte()])
                     
-                    faceGenerationMethod4 = True
-
-                    """
-                    if resetFlags[0][0] == 1 and resetFlags[0][1] == 1 and resetFlags[0][2] == 1:
-                        faceGenerationMethod3 = True
-                    else:
-                        faceGenerationMethod4 = True
+                    self.chunkFaces = []
                     
-                    #TEST
-                    if faceGenerationMethod3 == True:
-                        print("Face Generation Method 3")
-                        self.chunkFaces = []
-                        self.chunkFacesDir = []
-                        resetFlag = ""
-                        index -= NUM
-                        for i in range(NUM):
-                            if resetFlags[i][0] == 1 and resetFlags[i][1] == 1 and resetFlags[i][2] == 1: # ?
-                                resetFlag += "FF"
-                            elif resetFlag != "":                    
-                                if i > 2:
-                                    print(i - 2)
-                                    print(resetFlag)
-                                    self.chunkFaces.insert(len(self.chunkFaces) - 2, 65535)
-                                    if (i - 2) % 2 != 0:
-                                        self.chunkFacesDir.append(index - 2)
-                                resetFlag = ""
-                            self.chunkFaces.append(index)
-                            index += 1
-                    """
-                    
-                    if faceGenerationMethod4 == True:
-                        self.chunkFaces = []
-                        resetFlag = ""
-                        index -= NUM
-                        for i in range(NUM):
-                            if resetFlags[i][3] == 0xFF:
-                                resetFlag += "FF"
-                            elif resetFlag != "":                    
-                                if i > 2:
-                                    self.chunkFaces.insert(len(self.chunkFaces) - 2, 65535)
-                                resetFlag = ""
-                            self.chunkFaces.append(index)
-                            index += 1
+                    resetFlag = ""
+                    index -= NUM
+                    for i in range(NUM):
+                        if resetFlags[i][3] == 0xFF:
+                            resetFlag += "FF"
+                        elif resetFlag != "":                    
+                            if i > 2 and resetFlag != "":
+                                self.chunkFaces.insert(len(self.chunkFaces) - 2, 65535)
+                                if (i - 2) % 2 != 0 and reverseFaceDir == False:
+                                    self.chunkFacesDir.append(index - 2)
+                                elif (i - 2) % 2 == 0 and reverseFaceDir == True:
+                                    self.chunkFacesDir.append(index - 2)
+                            resetFlag = ""
+                        self.chunkFaces.append(index)
+                        index += 1
                     
                     
                 else:
@@ -257,7 +231,7 @@ class MDL(object):
 
         self.ivx_header = MDL_Header(br)
 
-        for a in range(self.ivx_header.meshCount): # self.ivx_header.meshCount
+        for a in range(7): # self.ivx_header.meshCount
 
             print("mesh position " + str(a) + " : " + str(br.tell()))
             
@@ -268,7 +242,7 @@ class MDL(object):
             meshFaces = []
             meshMaterials = []
 
-            self.ivx_submeshHeader = MDL_subMeshHeader(br, self.ivx_header)
+            self.ivx_submeshHeader = MDL_MeshHeader(br, self.ivx_header)
 
             MeshPositions = []
             MeshTexCoords = []

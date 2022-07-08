@@ -5,6 +5,7 @@ def StripToTriangle(triangleStripList, faceDir=[]):
         faceWinding = True
     else:
         faceWinding = False
+    
     for i in range(2, len(triangleStripList)):
         if triangleStripList[i] == 0xFFFF or triangleStripList[i - 1] == 0xFFFF or triangleStripList[i - 2] == 0xFFFF:
             if i % 2 == 0:

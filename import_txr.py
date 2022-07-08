@@ -139,6 +139,7 @@ def build_mdl(data, filename):
         obj.parent = empty
 
         vertexList = {}
+        facesList = []
         normals = []
 
         bm = bmesh.new()
@@ -156,12 +157,20 @@ def build_mdl(data, filename):
 
             vertexList[j] = vertex
 
+        # Set faces
         for j in range(len(meshFaces)):
             try:
                 face = bm.faces.new([vertexList[meshFaces[j][0]], vertexList[meshFaces[j][1]], vertexList[meshFaces[j][2]]])
                 face.smooth = True
             except:
-                pass
+                for Face in facesList:
+                    if set([vertexList[meshFaces[j][0]], vertexList[meshFaces[j][1]], vertexList[meshFaces[j][2]]]) == set(Face[1]):
+                        face = Face[0].copy(verts=False, edges=True)
+                        face.normal_flip()
+                        face.smooth = True
+                        break
+                    
+            facesList.append([face, [vertexList[meshFaces[j][0]], vertexList[meshFaces[j][1]], vertexList[meshFaces[j][2]]]])
 
         # Set uv
         for f in bm.faces:
