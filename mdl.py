@@ -15,7 +15,7 @@ class MDL_Header(object):
             br.seek(16, 1)
 
 class MDL_MeshHeader(object):
-    def __init__(self, br, ivx_header):
+    def __init__(self, br):
         super().__init__()
 
         br.seek(4,1) # ???
@@ -44,12 +44,6 @@ class MDL_chunk(object):
         self.chunkNormals = []
         self.chunkFaces = []
         self.chunkFacesDir = []
-        
-        if post_kb2_face_generation == True:
-            #0x68 (y value and 0xFFFFFFFE reset)
-            faceGenerationMethod1 = True  
-        else:
-            faceGenerationMethod1 = False
         
         faceGenerationMethod2 = False #0x62 (0xFFFF reset)
         faceGenerationMethod3 = False #0x6E (with 01 01 01 reset ?)
@@ -91,8 +85,6 @@ class MDL_chunk(object):
                                 resetFlag += "FF"
                             elif resetFlag != "":                    
                                 if i > 2:
-                                    print(i - 2)
-                                    print(resetFlag)
                                     self.chunkFaces.insert(len(self.chunkFaces) - 2, 65535)
                                     if (i - 2) % 2 != 0:
                                         self.chunkFacesDir.append(index - 2)
@@ -123,30 +115,8 @@ class MDL_chunk(object):
                         z = struct.unpack(br.endian + "f", coordinates[8:12])[0]
                         self.chunkPositions.append([x, y, z])
 
-                        y_int = struct.unpack(br.endian + "I", coordinates[4:8])[0]
-                        
-                        if faceGenerationMethod1 == True:
-                            reset = y_int & 0xFFFFFFFE
-                            if reset != y_int:
-                                resetFlag += "FF"
-                                self.chunkFaces.append(index)
-                            else:
-                                if i > 2 and resetFlag != "":
-                                    #print(i - 2)
-                                    #print(resetFlag)
-                                    self.chunkFaces.insert(len(self.chunkFaces) - 2, 65535)
-                                    if (i - 2) % 2 != 0 and reverseFaceDir == False:
-                                        self.chunkFacesDir.append(index - 2)
-                                    elif (i - 2) % 2 == 0 and reverseFaceDir == True:
-                                        self.chunkFacesDir.append(index - 2)
-                                resetFlag = ""
-                                self.chunkFaces.append(index)
-                            index += 1
-                        else:
-                            self.chunkFaces.append(index)
-                            index += 1
-     
-                    #print(NUM)
+                        self.chunkFaces.append(index)
+                        index += 1
 
                 elif CMD == 0x69: # TexCoords ?
                     for i in range(NUM):
@@ -187,8 +157,6 @@ class MDL_chunk(object):
                         for i in range(NUM): # Texture Coordinates
                             self.chunkTexCoords.append([br.readShort() / 32767, br.readShort() / 32767])
                             self.chunkTexCoords2.append([br.readShort() / 32767, br.readShort() / 32767])
-                            #self.chunkTexCoords.append([br.readShort() / 32767 * 8, br.readShort() / 32767 * 8])
-                            #self.chunkTexCoords2.append([br.readShort() / 32767, br.readShort() / 32767])
                             
                 elif CMD == 0x6E:
                     resetFlags = []
@@ -205,9 +173,7 @@ class MDL_chunk(object):
                         elif resetFlag != "":                    
                             if i > 2 and resetFlag != "":
                                 self.chunkFaces.insert(len(self.chunkFaces) - 2, 65535)
-                                if (i - 2) % 2 != 0 and reverseFaceDir == False:
-                                    self.chunkFacesDir.append(index - 2)
-                                elif (i - 2) % 2 == 0 and reverseFaceDir == True:
+                                if (i - 2) % 2 != 0:
                                     self.chunkFacesDir.append(index - 2)
                             resetFlag = ""
                         self.chunkFaces.append(index)
@@ -231,7 +197,7 @@ class MDL(object):
 
         self.ivx_header = MDL_Header(br)
 
-        for a in range(7): # self.ivx_header.meshCount
+        for a in range(8): # self.ivx_header.meshCount
 
             print("mesh position " + str(a) + " : " + str(br.tell()))
             
@@ -242,7 +208,7 @@ class MDL(object):
             meshFaces = []
             meshMaterials = []
 
-            self.ivx_submeshHeader = MDL_MeshHeader(br, self.ivx_header)
+            self.ivx_meshHeader = MDL_MeshHeader(br)
 
             MeshPositions = []
             MeshTexCoords = []
@@ -253,7 +219,10 @@ class MDL(object):
 
             index = 0
 
-            for c in range(self.ivx_submeshHeader.chunkCount): # self.ivx_submeshHeader.chunkCount
+            if a == 7:
+                self.ivx_meshHeader.chunkCount = 1
+
+            for c in range(self.ivx_meshHeader.chunkCount): # self.ivx_meshHeader.chunkCount
 
                 #print("Chunck position : " + str(br.tell()))
                 ivx_chunk = MDL_chunk(br, MeshFaces, index, self.ivx_header, post_kb2_face_generation)

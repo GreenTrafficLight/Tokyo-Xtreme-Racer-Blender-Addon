@@ -181,8 +181,6 @@ class IVX_chunk(object):
                                 self.chunkFaces.append(index)
                             else:
                                 if i > 2 and resetFlag != "":
-                                    #print(i - 2)
-                                    #print(resetFlag)
                                     self.chunkFaces.insert(len(self.chunkFaces) - 2, 65535)
                                     if (i - 2) % 2 != 0 and reverseFaceDir == False:
                                         self.chunkFacesDir.append(index - 2)
