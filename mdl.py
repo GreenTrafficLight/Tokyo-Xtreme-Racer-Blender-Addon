@@ -163,6 +163,34 @@ class MDL_chunk(object):
                     for i in range(NUM):
                         resetFlags.append([br.readUByte(), br.readUByte(), br.readUByte(), br.readUByte()])
                     
+                    """
+                    self.chunkFaces = []
+
+                    resetFlag = ""
+                    index -= NUM
+                    indicesList_start = len(self.chunkFaces)
+                    for i in range(NUM):
+                        if len(self.chunkFaces) - indicesList_start >= 3:
+                            if resetFlags[i][3] == 0xFF:
+                                if self.chunkFaces[-3] == 0xFFFF:
+                                    self.chunkFaces.pop(-2)
+                                    self.chunkFaces.append(index)
+                                else:
+                                    self.chunkFaces.append(0xFFFF)
+                                    self.chunkFaces.append(self.chunkFaces[-2])
+                                    self.chunkFaces.append(index)
+                                index += 1
+                                continue
+                        self.chunkFaces.append(index)
+                        index += 1
+                    self.chunkFaces.append(0xFFFF)
+                    if self.chunkFaces[indicesList_start + 1] == 0xFFFF:
+                        self.chunkFaces.pop(indicesList_start + 1)
+                    if self.chunkFaces[indicesList_start + 0] == 0xFFFF:
+                        self.chunkFaces.pop(indicesList_start + 0)
+                    """
+
+                    """
                     self.chunkFaces = []
                     
                     resetFlag = ""
@@ -176,6 +204,22 @@ class MDL_chunk(object):
                                 if (i - 2) % 2 != 0:
                                     self.chunkFacesDir.append(index - 2)
                             resetFlag = ""
+                        self.chunkFaces.append(index)
+                        index += 1
+                    """
+
+                    self.chunkFaces = []
+                    
+                    resetFlag = ""
+                    index -= NUM
+                    ffcheck = 0
+                    for i in range(NUM):
+                        if resetFlags[i][3] == 0xFF:
+                            if ffcheck == 0:
+                                self.chunkFacesDir.append(65535)
+                                ffcheck = 1
+                        else:
+                            ffcheck = 0
                         self.chunkFaces.append(index)
                         index += 1
                     
