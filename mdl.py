@@ -214,12 +214,25 @@ class MDL_chunk(object):
                     index -= NUM
                     ffcheck = 0
                     for i in range(NUM):
+                        #index += 1
+                        facea = index - 2
+                        faceb = index - 1
+                        facec = index
                         if resetFlags[i][3] == 0xFF:
                             if ffcheck == 0:
-                                self.chunkFacesDir.append(65535)
+                                self.chunkFaces.append(65535)
                                 ffcheck = 1
+                                #if (index % 2) != 0:
+                                    #self.chunkFacesDir.append(index)
                         else:
                             ffcheck = 0
+                            """
+                            if (index % 2) == 0:
+                                self.chunkFaces.append([facea, faceb, facec])
+                            else:
+                                self.chunkFaces.append([facea, facec, faceb])
+                            """
+
                         self.chunkFaces.append(index)
                         index += 1
                     
@@ -241,7 +254,7 @@ class MDL(object):
 
         self.ivx_header = MDL_Header(br)
 
-        for a in range(8): # self.ivx_header.meshCount
+        for a in range(1): # self.ivx_header.meshCount
 
             print("mesh position " + str(a) + " : " + str(br.tell()))
             
@@ -263,8 +276,8 @@ class MDL(object):
 
             index = 0
 
-            if a == 7:
-                self.ivx_meshHeader.chunkCount = 1
+            if a == 1:
+                self.ivx_meshHeader.chunkCount = 2
 
             for c in range(self.ivx_meshHeader.chunkCount): # self.ivx_meshHeader.chunkCount
 
@@ -305,6 +318,9 @@ class MDL(object):
             self.texCoords2.append(MeshTexCoords2)
             self.normals.append(MeshNormals)
             self.faces.append(StripToTriangle(MeshFaces, MeshFacesDirection))
+            #self.faces.append(MeshFaces)
+            for faces in self.faces:
+                print(faces)
 
         print("end : " + str(br.tell()))
 
