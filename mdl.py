@@ -63,12 +63,12 @@ class MDL_chunk(object):
                 continue
             
             elif CMD & 0x60 == 0x60:
-                resetFlags = []
+                flags = []
 
                 if CMD == 0x62: # Face Information
                     for i in range(NUM):
-                        resetFlags.append(br.readUByte())
-                        if resetFlags[i] != 0xFF:
+                        flags.append(br.readUByte())
+                        if flags[i] != 0xFF:
                             faceGenerationMethod2 = True
                     # TO FIX
                     skip = ((NUM * 3) + 3) & ~3
@@ -81,7 +81,7 @@ class MDL_chunk(object):
                         resetFlag = ""
                         index -= NUM
                         for i in range(NUM):
-                            if resetFlags[i] == 0xFF:
+                            if int(bin(flags[i])[-1]) == 1:
                                 resetFlag += "FF"
                             elif resetFlag != "":                    
                                 if i > 2:
@@ -159,44 +159,16 @@ class MDL_chunk(object):
                             self.chunkTexCoords2.append([br.readShort() / 32767, br.readShort() / 32767])
                             
                 elif CMD == 0x6E:
-                    resetFlags = []
+                    flags = []
                     for i in range(NUM):
-                        resetFlags.append([br.readUByte(), br.readUByte(), br.readUByte(), br.readUByte()])
+                        flags.append([br.readUByte(), br.readUByte(), br.readUByte(), br.readUByte()])
                     
-                    """
-                    self.chunkFaces = []
-
-                    resetFlag = ""
-                    index -= NUM
-                    indicesList_start = len(self.chunkFaces)
-                    for i in range(NUM):
-                        if len(self.chunkFaces) - indicesList_start >= 3:
-                            if resetFlags[i][3] == 0xFF:
-                                if self.chunkFaces[-3] == 0xFFFF:
-                                    self.chunkFaces.pop(-2)
-                                    self.chunkFaces.append(index)
-                                else:
-                                    self.chunkFaces.append(0xFFFF)
-                                    self.chunkFaces.append(self.chunkFaces[-2])
-                                    self.chunkFaces.append(index)
-                                index += 1
-                                continue
-                        self.chunkFaces.append(index)
-                        index += 1
-                    self.chunkFaces.append(0xFFFF)
-                    if self.chunkFaces[indicesList_start + 1] == 0xFFFF:
-                        self.chunkFaces.pop(indicesList_start + 1)
-                    if self.chunkFaces[indicesList_start + 0] == 0xFFFF:
-                        self.chunkFaces.pop(indicesList_start + 0)
-                    """
-
-                    """
                     self.chunkFaces = []
                     
                     resetFlag = ""
                     index -= NUM
                     for i in range(NUM):
-                        if resetFlags[i][3] == 0xFF:
+                        if int(bin(flags[i][3])[-1]) == 1:
                             resetFlag += "FF"
                         elif resetFlag != "":                    
                             if i > 2 and resetFlag != "":
@@ -205,37 +177,7 @@ class MDL_chunk(object):
                                     self.chunkFacesDir.append(index - 2)
                             resetFlag = ""
                         self.chunkFaces.append(index)
-                        index += 1
-                    """
-
-                    self.chunkFaces = []
-                    
-                    resetFlag = ""
-                    index -= NUM
-                    ffcheck = 0
-                    for i in range(NUM):
-                        #index += 1
-                        facea = index - 2
-                        faceb = index - 1
-                        facec = index
-                        if resetFlags[i][3] == 0xFF:
-                            if ffcheck == 0:
-                                self.chunkFaces.append(65535)
-                                ffcheck = 1
-                                #if (index % 2) != 0:
-                                    #self.chunkFacesDir.append(index)
-                        else:
-                            ffcheck = 0
-                            """
-                            if (index % 2) == 0:
-                                self.chunkFaces.append([facea, faceb, facec])
-                            else:
-                                self.chunkFaces.append([facea, facec, faceb])
-                            """
-
-                        self.chunkFaces.append(index)
-                        index += 1
-                    
+                        index += 1                    
                     
                 else:
                     print("UNKNOWN : " + str(CMD))
@@ -254,7 +196,7 @@ class MDL(object):
 
         self.ivx_header = MDL_Header(br)
 
-        for a in range(1): # self.ivx_header.meshCount
+        for a in range(2): # self.ivx_header.meshCount
 
             print("mesh position " + str(a) + " : " + str(br.tell()))
             
@@ -275,7 +217,7 @@ class MDL(object):
             MeshFacesDirection = []
 
             index = 0
-
+            
             if a == 1:
                 self.ivx_meshHeader.chunkCount = 2
 
@@ -306,6 +248,8 @@ class MDL(object):
 
                 MeshFaces.extend(ivx_chunk.chunkFaces)
                 MeshFaces.append(65535)
+                for faces in MeshFaces:
+                    print(faces)
                     
                 MeshFacesDirection.extend(ivx_chunk.chunkFacesDir)
 
@@ -319,8 +263,6 @@ class MDL(object):
             self.normals.append(MeshNormals)
             self.faces.append(StripToTriangle(MeshFaces, MeshFacesDirection))
             #self.faces.append(MeshFaces)
-            for faces in self.faces:
-                print(faces)
 
         print("end : " + str(br.tell()))
 

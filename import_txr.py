@@ -128,8 +128,8 @@ def build_mdl(data, filename):
         meshNormals = data.normals[mesh_ivx]
         meshFaces = data.faces[mesh_ivx]
 
-        mesh = bpy.data.meshes.new(str(empty.name + "_" + str(mesh_ivx)))
-        obj = bpy.data.objects.new(str(empty.name + "_" + str(mesh_ivx)), mesh)
+        mesh = bpy.data.meshes.new(str(empty.name))
+        obj = bpy.data.objects.new(str(empty.name), mesh)
         
         if bpy.app.version >= (2, 80, 0):
             empty.users_collection[0].objects.link(obj)
