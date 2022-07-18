@@ -204,21 +204,27 @@ def build_mdl(data, filename):
 
         mesh.materials.append(material)
 
-def main(filepath, clear_scene, game_face_generation):
+def main(filepath, files, clear_scene, game_face_generation):
     if clear_scene:
         clearScene()
 
-    f = open(filepath, "rb")
-    br = BinaryReader(f)
+    folder = (os.path.dirname(filepath))
 
-    header = br.bytesToString(br.readBytes(4)).replace("\0", "")
-    br.seek(0, 0)
+    for i, j in enumerate(files):
 
-    filename = filepath.split("\\")[-1]
+        path_to_file = (os.path.join(folder, j.name))
 
-    if header == "0IVX":
-        ivx = IVX(br, game_face_generation)
-        build_ivx(ivx, filename)
-    else:
-        mdl = MDL(br)
-        build_mdl(mdl, filename)
+        f = open(path_to_file, "rb")
+        br = BinaryReader(f)
+
+        header = br.bytesToString(br.readBytes(4)).replace("\0", "")
+        br.seek(0, 0)
+
+        filename = path_to_file.split("\\")[-1]
+
+        if header == "0IVX":
+            ivx = IVX(br, game_face_generation)
+            build_ivx(ivx, filename)
+        else:
+            mdl = MDL(br)
+            build_mdl(mdl, filename)

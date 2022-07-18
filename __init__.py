@@ -14,7 +14,7 @@ bl_info = {
 import bpy
 
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty, CollectionProperty
 from bpy.types import Operator
 
 class ImportTXR(Operator, ImportHelper):
@@ -24,6 +24,9 @@ class ImportTXR(Operator, ImportHelper):
 
     filename_ext = ""
     filter_glob: StringProperty(default="*", options={'HIDDEN'}, maxlen=255,)
+
+    # Selected files
+    files: CollectionProperty(type=bpy.types.PropertyGroup)
 
     clear_scene: BoolProperty(
         name="Clear scene",
@@ -39,7 +42,7 @@ class ImportTXR(Operator, ImportHelper):
 
     def execute(self, context):
         from . import  import_txr
-        import_txr.main(self.filepath, self.clear_scene, self.post_kb2_face_generation)
+        import_txr.main(self.filepath, self.files, self.clear_scene, self.post_kb2_face_generation)
         return {'FINISHED'}
 
 def menu_func_import(self, context):
