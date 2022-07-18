@@ -7,12 +7,15 @@ import numpy as np
 class MDL_Header(object):
     def __init__(self, br):
         super().__init__()
+
+        self.materials = []
        
         br.seek(0, 0)
         self.meshCount = br.readUInt()
         br.seek(12,1) # zeros
         for i in range(self.meshCount):
-            br.seek(16, 1)
+            self.materials.append(br.readUInt())
+            br.seek(12, 1)
 
 class MDL_MeshHeader(object):
     def __init__(self, br):
@@ -26,7 +29,7 @@ class MDL_MeshHeader(object):
         br.seek(16, 1) # ???
 
 class MDL_chunk(object):
-    def __init__(self, br, subMeshFaces, index, ivx_header, post_kb2_face_generation):
+    def __init__(self, br, subMeshFaces, index, ivx_header):
         super().__init__()
 
         self.faceDir = False
@@ -39,11 +42,17 @@ class MDL_chunk(object):
 
         self.chunkInfo = []
         self.chunkPositions = []
+        
         self.chunkTexCoords = []
         self.chunkTexCoords2 = []
+        self.chunkTexCoords3 = []
+        self.chunkTexCoords4 = []
+        
         self.chunkNormals = []
         self.chunkFaces = []
         self.chunkFacesDir = []
+
+        duplicates = []
         
         faceGenerationMethod2 = False #0x62 (0xFFFF reset)
         faceGenerationMethod3 = False #0x6E (with 01 01 01 reset ?)
@@ -86,19 +95,24 @@ class MDL_chunk(object):
                             elif resetFlag != "":                    
                                 if i > 2:
                                     self.chunkFaces.insert(len(self.chunkFaces) - 2, 65535)
-                                    if (i - 2) % 2 != 0:
-                                        self.chunkFacesDir.append(index - 2)
+                                    #if (i - 2) % 2 != 0:
+                                        #self.chunkFacesDir.append(index - 2)
                                 resetFlag = ""
                             self.chunkFaces.append(index)
                             index += 1
           
                 elif CMD == 0x64: # TexCoords
                     for i in range(NUM):
-                        self.chunkTexCoords.append([br.readFloat(), br.readFloat()])
+                        self.chunkTexCoords.append([br.readFloat() * 8, br.readFloat() * 8])
                 
                 elif CMD == 0x65: # TexCoords
                     for i in range(NUM):
-                        self.chunkTexCoords.append([br.readShort() / 32767, br.readShort() / 32767])
+                        u = br.readShort()
+                        v = br.readShort()
+                        self.chunkTexCoords.append([u / 4096, v / 4096])
+                        self.chunkTexCoords2.append([u / 4096, v / 2048])
+                        self.chunkTexCoords3.append([u / 2048, v / 2048])
+                        self.chunkTexCoords4.append([u / 2048, v / 4096])
                 
                 elif CMD == 0x68: # Positions
                     #print("position " + str(hex(br.tell())))
@@ -113,6 +127,10 @@ class MDL_chunk(object):
                         x = struct.unpack(br.endian + "f", coordinates[0:4])[0]
                         y = struct.unpack(br.endian + "f", coordinates[4:8])[0]
                         z = struct.unpack(br.endian + "f", coordinates[8:12])[0]
+                        
+                        if self.chunkPositions != [] and [x, y, z] == self.chunkPositions[-1]:
+                            duplicates.append(index)
+                        #else:
                         self.chunkPositions.append([x, y, z])
 
                         self.chunkFaces.append(index)
@@ -160,8 +178,10 @@ class MDL_chunk(object):
                             
                 elif CMD == 0x6E:
                     flags = []
+                    #self.chunkNormals = []
                     for i in range(NUM):
                         flags.append([br.readUByte(), br.readUByte(), br.readUByte(), br.readUByte()])
+                        #self.chunkNormals.append(Vector((flags[i][0], flags[i][1], flags[i][2])).normalized())
                     
                     self.chunkFaces = []
                     
@@ -173,9 +193,17 @@ class MDL_chunk(object):
                         elif resetFlag != "":                    
                             if i > 2 and resetFlag != "":
                                 self.chunkFaces.insert(len(self.chunkFaces) - 2, 65535)
-                                if (i - 2) % 2 != 0:
+                                if (i - 2) % 2 != 0 and reverseFaceDir == False:
+                                    self.chunkFacesDir.append(index - 2)
+                                elif (i - 2) % 2 == 0 and reverseFaceDir == True:
                                     self.chunkFacesDir.append(index - 2)
                             resetFlag = ""
+
+                        if index in duplicates:
+                            print("test")
+                            #self.chunkPositions.pop(index - NUM)
+                            #duplicates.remove(index) 
+                        #else:
                         self.chunkFaces.append(index)
                         index += 1                    
                     
@@ -184,7 +212,7 @@ class MDL_chunk(object):
         br.seek(self.dataLength, 0) # test
 
 class MDL(object):
-    def __init__(self, br, post_kb2_face_generation):
+    def __init__(self, br):
         super().__init__()
 
         self.positions = []
@@ -192,25 +220,17 @@ class MDL(object):
         self.texCoords2 = []
         self.normals = []
         self.faces = []
-        self.materials = []
 
         self.ivx_header = MDL_Header(br)
 
-        for a in range(2): # self.ivx_header.meshCount
+        for a in range(self.ivx_header.meshCount): # self.ivx_header.meshCount
 
             print("mesh position " + str(a) + " : " + str(br.tell()))
             
-            meshPositions = []
-            meshTexCoords = []
-            meshTexCoords2 = []
-            meshNormals = []
-            meshFaces = []
-            meshMaterials = []
-
             self.ivx_meshHeader = MDL_MeshHeader(br)
 
-            MeshPositions = []
-            MeshTexCoords = []
+            mesh_Positions = []
+            mesh_TexCoords = []
             MeshTexCoords2 = []
             MeshNormals = []
             MeshFaces = []
@@ -218,21 +238,21 @@ class MDL(object):
 
             index = 0
             
-            if a == 1:
-                self.ivx_meshHeader.chunkCount = 2
+            #if a == 14:
+                #self.ivx_meshHeader.chunkCount = 1
 
             for c in range(self.ivx_meshHeader.chunkCount): # self.ivx_meshHeader.chunkCount
 
                 #print("Chunck position : " + str(br.tell()))
-                ivx_chunk = MDL_chunk(br, MeshFaces, index, self.ivx_header, post_kb2_face_generation)
+                ivx_chunk = MDL_chunk(br, MeshFaces, index, self.ivx_header)
                 
-                MeshPositions.extend(ivx_chunk.chunkPositions)
+                mesh_Positions.extend(ivx_chunk.chunkPositions)
                 
                 if ivx_chunk.chunkTexCoords == []:
                     for i in range(ivx_chunk.count):
-                        MeshTexCoords.append([0,0,0])
+                        mesh_TexCoords.append([0,0,0])
                 else:
-                    MeshTexCoords.extend(ivx_chunk.chunkTexCoords)
+                    mesh_TexCoords.extend(ivx_chunk.chunkTexCoords)
                 
                 if ivx_chunk.chunkTexCoords2 == []:
                     for i in range(ivx_chunk.count):
@@ -242,23 +262,23 @@ class MDL(object):
 
                 if ivx_chunk.chunkNormals == []:
                     for i in range(ivx_chunk.count):
-                        MeshNormals.append([0,0,0])
+                        MeshNormals.append(None)
                 else:
                     MeshNormals.extend(ivx_chunk.chunkNormals)
 
                 MeshFaces.extend(ivx_chunk.chunkFaces)
                 MeshFaces.append(65535)
-                for faces in MeshFaces:
-                    print(faces)
+                #for faces in MeshFaces:
+                    #print(faces)
                     
                 MeshFacesDirection.extend(ivx_chunk.chunkFacesDir)
 
-                index = len(MeshPositions)
+                index = len(mesh_Positions)
 
             br.seek(16, 1)
             
-            self.positions.append(MeshPositions)
-            self.texCoords.append(MeshTexCoords)
+            self.positions.append(mesh_Positions)
+            self.texCoords.append(mesh_TexCoords)
             self.texCoords2.append(MeshTexCoords2)
             self.normals.append(MeshNormals)
             self.faces.append(StripToTriangle(MeshFaces, MeshFacesDirection))

@@ -145,13 +145,19 @@ def build_mdl(data, filename):
         bm = bmesh.new()
         bm.from_mesh(mesh)
 
+        if meshTexCoords != []:
+            uv_layer1 = bm.loops.layers.uv.new()
+        if meshTexCoords2 != []:
+            uv_layer2 = bm.loops.layers.uv.new()
+
         for j in range(len(meshPositions)):
 
             vertex = bm.verts.new(meshPositions[j])
 
             if meshNormals != []:
-                vertex.normal = meshPositions[j]
-                normals.append(meshPositions[j])
+                if meshNormals[j] != None:
+                    vertex.normal = meshNormals[j]
+                    normals.append(meshNormals[j])
 
             vertex.index = j
 
@@ -173,10 +179,17 @@ def build_mdl(data, filename):
             facesList.append([face, [vertexList[meshFaces[j][0]], vertexList[meshFaces[j][1]], vertexList[meshFaces[j][2]]]])
 
         # Set uv
-        for f in bm.faces:
-            uv_layer1 = bm.loops.layers.uv.verify()
-            for l in f.loops:
-                l[uv_layer1].uv =  [meshTexCoords[l.vert.index][0], 1 - meshTexCoords[l.vert.index][1]]
+        if meshTexCoords != []:
+            for f in bm.faces:
+                #uv_layer1 = bm.loops.layers.uv.verify()
+                for l in f.loops:
+                    l[uv_layer1].uv =  [meshTexCoords[l.vert.index][0], 1 - meshTexCoords[l.vert.index][1]]
+
+        if meshTexCoords2 != []:
+            for f in bm.faces:
+                #uv_layer2 = bm.loops.layers.uv.verify()
+                for l in f.loops:
+                    l[uv_layer2].uv =  [meshTexCoords2[l.vert.index][0], 1 - meshTexCoords2[l.vert.index][1]]
                     
         bm.to_mesh(mesh)
         bm.free()
@@ -184,6 +197,12 @@ def build_mdl(data, filename):
         mesh.use_auto_smooth = True
         if normals != []:
             mesh.normals_split_custom_set_from_vertices(normals)
+
+        material = bpy.data.materials.get(str(data.ivx_header.materials[mesh_ivx]))
+        if not material:
+            material = bpy.data.materials.new(str(data.ivx_header.materials[mesh_ivx]))
+
+        mesh.materials.append(material)
 
 def main(filepath, clear_scene, game_face_generation):
     if clear_scene:
@@ -201,5 +220,5 @@ def main(filepath, clear_scene, game_face_generation):
         ivx = IVX(br, game_face_generation)
         build_ivx(ivx, filename)
     else:
-        mdl = MDL(br, game_face_generation)
+        mdl = MDL(br)
         build_mdl(mdl, filename)

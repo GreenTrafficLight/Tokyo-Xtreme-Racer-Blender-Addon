@@ -155,7 +155,7 @@ class IVX_chunk(object):
                 
                 elif CMD == 0x65: # TexCoords
                     for i in range(NUM):
-                        self.chunkTexCoords.append([br.readShort() / 32767 * 8, br.readShort() / 32767 * 8])
+                        self.chunkTexCoords.append([br.readShort() / 4096, br.readShort() / 4096])
                 
                 elif CMD == 0x68: # Positions
                     #print("position " + str(hex(br.tell())))
