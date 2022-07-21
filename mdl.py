@@ -64,14 +64,27 @@ class MDL_chunk(object):
             NUM = br.readUByte()
             CMD = br.readUByte()
 
+
+
             if CMD == 1:
                 cl = IMMEDIATE & 0xFF
                 wl = (IMMEDIATE >> 8) & 0xFF
                 continue
+            
             elif CMD == 17:
                 continue
             
             elif CMD & 0x60 == 0x60:
+
+                # unpack command
+                mask = ((CMD & 0x10) == 0x10)
+                vn = (CMD >> 2) & 3
+                vl = CMD & 3
+                addr = IMMEDIATE & 0x1ff
+                flag = (IMMEDIATE & 0x8000) == 0x8000
+                usn = (IMMEDIATE & 0x4000) == 0x4000
+
+
                 flags = []
 
                 if CMD == 0x62: # Face Information
@@ -95,8 +108,10 @@ class MDL_chunk(object):
                             elif resetFlag != "":                    
                                 if i > 2:
                                     self.chunkFaces.insert(len(self.chunkFaces) - 2, 65535)
-                                    #if (i - 2) % 2 != 0:
-                                        #self.chunkFacesDir.append(index - 2)
+                                    if (i - 2) % 2 != 0 and reverseFaceDir == False:
+                                        self.chunkFacesDir.append(index - 2)
+                                    elif (i - 2) % 2 == 0 and reverseFaceDir == True:
+                                        self.chunkFacesDir.append(index - 2)
                                 resetFlag = ""
                             self.chunkFaces.append(index)
                             index += 1
@@ -181,7 +196,7 @@ class MDL_chunk(object):
                     #self.chunkNormals = []
                     for i in range(NUM):
                         flags.append([br.readUByte(), br.readUByte(), br.readUByte(), br.readUByte()])
-                        #self.chunkNormals.append(Vector((flags[i][0], flags[i][1], flags[i][2])).normalized())
+                        #self.chunkNormals.append(Vector((flags[i][0] / 0xFF, flags[i][1] / 0xFF, flags[i][2] / 0xFF)).normalized())
                     
                     self.chunkFaces = []
                     
@@ -209,6 +224,7 @@ class MDL_chunk(object):
                     
                 else:
                     print("UNKNOWN : " + str(CMD))
+        
         br.seek(self.dataLength, 0) # test
 
 class MDL(object):

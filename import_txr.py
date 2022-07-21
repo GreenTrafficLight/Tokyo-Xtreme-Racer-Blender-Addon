@@ -221,7 +221,7 @@ def main(filepath, files, clear_scene, game_face_generation):
         br.seek(0, 0)
 
         filename = path_to_file.split("\\")[-1]
-
+        
         if header == "0IVX":
             ivx = IVX(br, game_face_generation)
             build_ivx(ivx, filename)
