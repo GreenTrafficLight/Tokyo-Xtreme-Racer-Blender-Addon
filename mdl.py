@@ -45,10 +45,15 @@ class MDL_chunk(object):
         
         self.chunkTexCoords = []
         self.chunkTexCoords2 = []
-        self.chunkTexCoords3 = []
-        self.chunkTexCoords4 = []
+        
+        self.chunkTexCoordsNoScale = []
+        self.chunkTexCoordsXScaled = []
+        self.chunkTexCoordsYScaled = []
+        self.chunkTexCoordsXYScaled = []
         
         self.chunkNormals = []
+        self.chunkColors = []
+
         self.chunkFaces = []
         self.chunkFacesDir = []
 
@@ -63,8 +68,6 @@ class MDL_chunk(object):
             IMMEDIATE = br.readUShort()
             NUM = br.readUByte()
             CMD = br.readUByte()
-
-
 
             if CMD == 1:
                 cl = IMMEDIATE & 0xFF
@@ -84,7 +87,6 @@ class MDL_chunk(object):
                 flag = (IMMEDIATE & 0x8000) == 0x8000
                 usn = (IMMEDIATE & 0x4000) == 0x4000
 
-
                 flags = []
 
                 if CMD == 0x62: # Face Information
@@ -92,6 +94,7 @@ class MDL_chunk(object):
                         flags.append(br.readUByte())
                         if flags[i] != 0xFF:
                             faceGenerationMethod2 = True
+                    
                     # TO FIX
                     skip = ((NUM * 3) + 3) & ~3
                     br.seek(skip - (NUM * 3), 1)
@@ -124,10 +127,13 @@ class MDL_chunk(object):
                     for i in range(NUM):
                         u = br.readShort()
                         v = br.readShort()
+                        
                         self.chunkTexCoords.append([u / 4096, v / 4096])
-                        self.chunkTexCoords2.append([u / 4096, v / 2048])
-                        self.chunkTexCoords3.append([u / 2048, v / 2048])
-                        self.chunkTexCoords4.append([u / 2048, v / 4096])
+                        
+                        self.chunkTexCoordsNoScale.append([u / 4096, v / 4096])
+                        self.chunkTexCoordsXScaled.append([u / 2048, v / 4096])
+                        self.chunkTexCoordsYScaled.append([u / 4096, v / 2048])
+                        self.chunkTexCoordsXYScaled.append([u / 2048, v / 2048])
                 
                 elif CMD == 0x68: # Positions
                     #print("position " + str(hex(br.tell())))
@@ -143,8 +149,8 @@ class MDL_chunk(object):
                         y = struct.unpack(br.endian + "f", coordinates[4:8])[0]
                         z = struct.unpack(br.endian + "f", coordinates[8:12])[0]
                         
-                        if self.chunkPositions != [] and [x, y, z] == self.chunkPositions[-1]:
-                            duplicates.append(index)
+                        #if self.chunkPositions != [] and [x, y, z] == self.chunkPositions[-1]:
+                            #duplicates.append(index)
                         #else:
                         self.chunkPositions.append([x, y, z])
 
@@ -193,10 +199,10 @@ class MDL_chunk(object):
                             
                 elif CMD == 0x6E:
                     flags = []
-                    #self.chunkNormals = []
+
                     for i in range(NUM):
                         flags.append([br.readUByte(), br.readUByte(), br.readUByte(), br.readUByte()])
-                        #self.chunkNormals.append(Vector((flags[i][0] / 0xFF, flags[i][1] / 0xFF, flags[i][2] / 0xFF)).normalized())
+                        self.chunkColors.append(Vector((flags[i][0] / 0xFF, flags[i][1] / 0xFF, flags[i][2] / 0xFF)).normalized())
                     
                     self.chunkFaces = []
                     
@@ -214,8 +220,8 @@ class MDL_chunk(object):
                                     self.chunkFacesDir.append(index - 2)
                             resetFlag = ""
 
-                        if index in duplicates:
-                            print("test")
+                        #if index in duplicates:
+                            #print("test")
                             #self.chunkPositions.pop(index - NUM)
                             #duplicates.remove(index) 
                         #else:
@@ -232,9 +238,18 @@ class MDL(object):
         super().__init__()
 
         self.positions = []
+        
         self.texCoords = []
         self.texCoords2 = []
+
+        self.texCoordsNoScale = []
+        self.texCoordsXScaled = []
+        self.texCoordsYScaled = []
+        self.texCoordsXYScaled = []
+        
         self.normals = []
+        self.colors = []
+
         self.faces = []
 
         self.ivx_header = MDL_Header(br)
@@ -245,42 +260,76 @@ class MDL(object):
             
             self.ivx_meshHeader = MDL_MeshHeader(br)
 
-            mesh_Positions = []
-            mesh_TexCoords = []
-            MeshTexCoords2 = []
-            MeshNormals = []
+            Mesh_Positions = []
+            
+            Mesh_TexCoords = []
+            Mesh_TexCoords2 = []
+
+            Mesh_TexCoordsNoScale = []
+            Mesh_TexCoordsXScaled = []
+            Mesh_TexCoordsYScaled = []
+            Mesh_TexCoordsXYScaled = []
+            
+            Mesh_Normals = []
+            Mesh_Colors = []
+            
             MeshFaces = []
             MeshFacesDirection = []
 
             index = 0
             
-            #if a == 14:
+            #if a == 2:
                 #self.ivx_meshHeader.chunkCount = 1
 
             for c in range(self.ivx_meshHeader.chunkCount): # self.ivx_meshHeader.chunkCount
 
-                #print("Chunck position : " + str(br.tell()))
+                print("Chunck position : " + str(br.tell()))
+
                 ivx_chunk = MDL_chunk(br, MeshFaces, index, self.ivx_header)
                 
-                mesh_Positions.extend(ivx_chunk.chunkPositions)
+                Mesh_Positions.extend(ivx_chunk.chunkPositions)
                 
                 if ivx_chunk.chunkTexCoords == []:
                     for i in range(ivx_chunk.count):
-                        mesh_TexCoords.append([0,0,0])
+                        Mesh_TexCoords.append([0,0,0])
                 else:
-                    mesh_TexCoords.extend(ivx_chunk.chunkTexCoords)
+                    Mesh_TexCoords.extend(ivx_chunk.chunkTexCoords)
                 
                 if ivx_chunk.chunkTexCoords2 == []:
                     for i in range(ivx_chunk.count):
-                        MeshTexCoords2.append([0,0,0])
+                        Mesh_TexCoords2.append([0,0,0])
                 else:
-                    MeshTexCoords2.extend(ivx_chunk.chunkTexCoords2)
+                    Mesh_TexCoords2.extend(ivx_chunk.chunkTexCoords2)
+
+                if ivx_chunk.chunkTexCoordsNoScale == []:
+                    for i in range(ivx_chunk.count):
+                        Mesh_TexCoordsNoScale.append([0,0,0])
+                else:
+                    Mesh_TexCoordsNoScale.extend(ivx_chunk.chunkTexCoordsNoScale)
+
+                if ivx_chunk.chunkTexCoordsXScaled == []:
+                    for i in range(ivx_chunk.count):
+                        Mesh_TexCoordsXScaled.append([0,0,0])
+                else:
+                    Mesh_TexCoordsXScaled.extend(ivx_chunk.chunkTexCoordsXScaled)
+
+                if ivx_chunk.chunkTexCoordsYScaled == []:
+                    for i in range(ivx_chunk.count):
+                        Mesh_TexCoordsYScaled.append([0,0,0])
+                else:
+                    Mesh_TexCoordsYScaled.extend(ivx_chunk.chunkTexCoordsYScaled)
+
+                if ivx_chunk.chunkTexCoordsXYScaled == []:
+                    for i in range(ivx_chunk.count):
+                        Mesh_TexCoordsXYScaled.append([0,0,0])
+                else:
+                    Mesh_TexCoordsXYScaled.extend(ivx_chunk.chunkTexCoordsXYScaled)
 
                 if ivx_chunk.chunkNormals == []:
                     for i in range(ivx_chunk.count):
-                        MeshNormals.append(None)
+                        Mesh_Normals.append(None)
                 else:
-                    MeshNormals.extend(ivx_chunk.chunkNormals)
+                    Mesh_Normals.extend(ivx_chunk.chunkNormals)
 
                 MeshFaces.extend(ivx_chunk.chunkFaces)
                 MeshFaces.append(65535)
@@ -289,16 +338,22 @@ class MDL(object):
                     
                 MeshFacesDirection.extend(ivx_chunk.chunkFacesDir)
 
-                index = len(mesh_Positions)
+                index = len(Mesh_Positions)
 
             br.seek(16, 1)
             
-            self.positions.append(mesh_Positions)
-            self.texCoords.append(mesh_TexCoords)
-            self.texCoords2.append(MeshTexCoords2)
-            self.normals.append(MeshNormals)
+            self.positions.append(Mesh_Positions)
+            
+            self.texCoords.append(Mesh_TexCoords)
+            self.texCoords2.append(Mesh_TexCoords2)
+
+            self.texCoordsNoScale.append(Mesh_TexCoordsNoScale)
+            self.texCoordsXScaled.append(Mesh_TexCoordsXScaled)
+            self.texCoordsYScaled.append(Mesh_TexCoordsYScaled)
+            self.texCoordsXYScaled.append(Mesh_TexCoordsXYScaled)
+
+            self.normals.append(Mesh_Normals)
             self.faces.append(StripToTriangle(MeshFaces, MeshFacesDirection))
-            #self.faces.append(MeshFaces)
 
         print("end : " + str(br.tell()))
 

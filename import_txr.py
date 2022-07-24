@@ -123,8 +123,15 @@ def build_mdl(data, filename):
         empty.parent = parent
 
         meshPositions = data.positions[mesh_ivx]
+        
         meshTexCoords = data.texCoords[mesh_ivx]
         meshTexCoords2 = data.texCoords2[mesh_ivx]
+
+        meshTexCoordsNoScale = data.texCoordsNoScale[mesh_ivx]
+        meshTexCoordsXScaled = data.texCoordsXScaled[mesh_ivx]
+        meshTexCoordsYScaled = data.texCoordsYScaled[mesh_ivx]
+        meshTexCoordsXYScaled = data.texCoordsXYScaled[mesh_ivx]
+
         meshNormals = data.normals[mesh_ivx]
         meshFaces = data.faces[mesh_ivx]
 
@@ -147,8 +154,21 @@ def build_mdl(data, filename):
 
         if meshTexCoords != []:
             uv_layer1 = bm.loops.layers.uv.new()
+        
         if meshTexCoords2 != []:
             uv_layer2 = bm.loops.layers.uv.new()
+
+        if meshTexCoordsNoScale != []:
+            uv_layer3 = bm.loops.layers.uv.new()
+
+        if meshTexCoordsXScaled != []:
+            uv_layer4 = bm.loops.layers.uv.new()
+
+        if meshTexCoordsYScaled != []:
+            uv_layer5 = bm.loops.layers.uv.new()
+
+        if meshTexCoordsXYScaled != []:
+            uv_layer6 = bm.loops.layers.uv.new()
 
         for j in range(len(meshPositions)):
 
@@ -190,7 +210,27 @@ def build_mdl(data, filename):
                 #uv_layer2 = bm.loops.layers.uv.verify()
                 for l in f.loops:
                     l[uv_layer2].uv =  [meshTexCoords2[l.vert.index][0], 1 - meshTexCoords2[l.vert.index][1]]
-                    
+
+        if meshTexCoordsNoScale != []:
+            for f in bm.faces:
+                for l in f.loops:
+                    l[uv_layer3].uv =  [meshTexCoordsNoScale[l.vert.index][0], 1 - meshTexCoordsNoScale[l.vert.index][1]]
+
+        if meshTexCoordsXScaled != []:
+            for f in bm.faces:
+                for l in f.loops:
+                    l[uv_layer4].uv =  [meshTexCoordsXScaled[l.vert.index][0], 1 - meshTexCoordsXScaled[l.vert.index][1]]
+
+        if meshTexCoordsYScaled != []:
+            for f in bm.faces:
+                for l in f.loops:
+                    l[uv_layer5].uv =  [meshTexCoordsYScaled[l.vert.index][0], 1 - meshTexCoordsYScaled[l.vert.index][1]]
+                 
+        if meshTexCoordsXYScaled != []:
+            for f in bm.faces:
+                for l in f.loops:
+                    l[uv_layer6].uv =  [meshTexCoordsXYScaled[l.vert.index][0], 1 - meshTexCoordsXYScaled[l.vert.index][1]]
+
         bm.to_mesh(mesh)
         bm.free()
 
